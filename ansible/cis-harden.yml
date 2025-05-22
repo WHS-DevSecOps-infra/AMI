@@ -1,0 +1,150 @@
+---
+  ## 시스템 업데이트
+  - name: 모든 패키지 최신화
+    yum:
+      name: "*"
+      state: latest
+
+  ## SSH 설정 하드닝
+  - name: SSH 최대 인증 시도 횟수 제한 (CIS 5.2.5)
+    lineinfile:
+      path: /etc/ssh/sshd_config
+      regexp: '^MaxAuthTries'
+      line: 'MaxAuthTries 4'
+
+  - name: X11 포워딩 차단 (CIS 5.2.6)
+    lineinfile:
+      path: "{{ sshd_config }}"
+      regexp: '^X11Forwarding'
+      line: 'X11Forwarding no'
+
+  - name: Root 로그인 차단 (CIS 5.2.8)
+    lineinfile:
+      path: "{{ sshd_config }}"
+      regexp: '^PermitRootLogin'
+      line: 'PermitRootLogin no'
+
+  - name: Empty 비밀번호 계정 차단 (CIS 5.2.9)
+    lineinfile:
+      path: "{{ sshd_config }}"
+      regexp: '^PermitEmptyPasswords'
+      line: 'PermitEmptyPasswords no'
+
+  - name: SSH 유휴 세션 타임아웃 설정 (CIS 5.2.12)
+    lineinfile:
+      path: /etc/ssh/sshd_config
+      regexp: '^ClientAliveInterval'
+      line: 'ClientAliveInterval 300'
+
+  - name: 비밀번호 인증 비활성화 (CIS 5.2.14)
+    lineinfile:
+      path: "{{ sshd_config }}"
+      regexp: '^PasswordAuthentication'
+      line: 'PasswordAuthentication no'
+
+  ## 계정 보안 설정
+  - name: 패스워드 최소 길이 설정 (CIS 5.4.1.1)
+    lineinfile:
+      path: /etc/login.defs
+      regexp: '^PASS_MIN_LEN'
+      line: 'PASS_MIN_LEN 14'
+
+  - name: 사용자 패스워드 최대 사용일 설정 (CIS 5.4.1.2)
+    command: chage --maxdays 90 ec2-user
+
+  ## 파일 권한 및 감시 설정
+  - name: auditd 설치 및 실행 (CIS 4.1.3)
+    yum:
+      name: audit
+      state: present
+
+  - name: auditd 서비스 시작 및 활성화
+    service:
+      name: auditd
+      state: started
+      enabled: yes
+
+  ## cron 작업 보안
+  - name: cron.allow 파일 생성 및 루트 전용 설정 (CIS 5.1.8)
+    file:
+      path: /etc/cron.allow
+      owner: root
+      group: root
+      mode: '0600'
+      state: touch
+
+  ## IP 포워딩 비활성화
+  - name: IPv4 포워딩 비활성화 (CIS 3.1.1)
+    sysctl:
+      name: net.ipv4.ip_forward
+      value: '0'
+      reload: yes
+
+  ## 불필요한 파일시스템 비활성화
+  - name: cramfs 비활성화 (CIS 1.1.1.1)
+    lineinfile:
+      path: /etc/modprobe.d/cramfs.conf
+      line: 'install cramfs /bin/true'
+      create: yes
+
+  ## 서비스 제거
+  - name: Telnet 제거 (CIS 2.2.2)
+    yum:
+      name: telnet
+      state: absent
+
+  - name: rsh 제거 (CIS 2.2.3)
+    yum:
+      name: rsh
+      state: absent
+
+  - name: xinetd 제거 (CIS 2.2.4)
+    yum:
+      name: xinetd
+      state: absent
+
+  ## 로그 및 감사 설정
+  - name: rsyslog 설치 (CIS 4.2.1.2)
+    yum:
+      name: rsyslog
+      state: present
+
+  - name: rsyslog 서비스 시작 및 부팅 시 활성화
+    service:
+      name: rsyslog
+      state: started
+      enabled: yes
+
+  - name: audit 로그 파일 권한 확인 (CIS 4.1.4)
+    file:
+      path: /var/log/audit
+      owner: root
+      group: root
+      mode: '0700'
+
+  - name: audit 로그 파일 크기 제한 설정
+    lineinfile:
+      path: /etc/audit/auditd.conf
+      regexp: '^max_log_file ='
+      line: 'max_log_file = 50'
+
+  ## 네트워크 보안 설정
+  - name: 패킷 소스 라우팅 비활성화 (CIS 3.2.1)
+    sysctl:
+      name: net.ipv4.conf.all.accept_source_route
+      value: '0'
+      reload: yes
+
+  - name: ICMP 리다이렉트 비활성화 (CIS 3.3.4)
+    sysctl:
+      name: net.ipv4.conf.all.accept_redirects
+      value: '0'
+      reload: yes
+
+    handlers:
+  - name: SSH 서비스 재시작
+    service:
+      name: sshd
+      state: restarted
+
+  ## level2 보안 추가 설정 예정
