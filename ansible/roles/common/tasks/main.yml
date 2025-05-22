@@ -1,4 +1,4 @@
 - name: Update all packages
-  yum:
+  dnf:
     name: '*'
     state: latest
