@@ -1,7 +1,6 @@
 ---
-  
   - name: sshd 경로 설정
-    vars:
+    set_fact:
       sshd_config: /etc/ssh/sshd_config
 
   ## SSH 설정 하드닝
@@ -49,11 +48,11 @@
       line: 'PASS_MIN_LEN 14'
 
   - name: 사용자 패스워드 최대 사용일 설정 (CIS 5.4.1.2)
-    command: chage --maxdays 90 ec2-user
+    command: chage --maxdays 90 ubuntu
 
   ## 파일 권한 및 감시 설정
   - name: auditd 설치 및 실행 (CIS 4.1.3)
-    yum:
+    apt:
       name: audit
       state: present
 
@@ -88,23 +87,23 @@
 
   ## 서비스 제거
   - name: Telnet 제거 (CIS 2.2.2)
-    yum:
+    apt:
       name: telnet
       state: absent
 
   - name: rsh 제거 (CIS 2.2.3)
-    yum:
+    apt:
       name: rsh
       state: absent
 
   - name: xinetd 제거 (CIS 2.2.4)
-    yum:
+    apt:
       name: xinetd
       state: absent
 
   ## 로그 및 감사 설정
   - name: rsyslog 설치 (CIS 4.2.1.2)
-    yum:
+    apt:
       name: rsyslog
       state: present
 
@@ -140,10 +139,5 @@
       value: '0'
       reload: yes
 
-    handlers:
-  - name: SSH 서비스 재시작
-    service:
-      name: sshd
-      state: restarted
 
   ## level2 보안 추가 설정 예정

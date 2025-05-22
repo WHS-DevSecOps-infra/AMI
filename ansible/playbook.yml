@@ -2,19 +2,28 @@
 - name: Nginx 보안 하드닝 및 방화벽 설정
   hosts: all
   become: yes  # 루트 권한으로 실행
+
   tasks:
 
     ## 시스템 업데이트
     - name: 모든 패키지 최신화
-      yum:
-        name: "*"
-        state: latest
+      apt:
+        update_cache: yes
+        upgrade: dist
+      when: ansible_facts['os_family']|default('RedHat') == 'Debian'
+
+    # Python3 설치
+    - name: Python3 설치
+      package:
+        name: python3
+        state: present
+      when: ansible_facts['os_family']|default('RedHat') == 'Debian'
 
     # Nginx 웹 서버를 설치
     - name: Nginx 설치
       package:
         name: nginx
-        state: presen
+        state: present
 
     - name: Nginx 서비스 시작 및 부팅 시 자동 실행
       service:
@@ -28,13 +37,6 @@
         src: /etc/nginx/nginx.conf
         dest: /etc/nginx/nginx.conf.bak
         remote_src: yes  # 원본 파일이 이미 존재하는 경우에만 백업
-
-    # Ansible이 Python3를 필요로 하므로 설치합니다.
-    - name: Python3 설치
-      package:
-        name: python3
-        state: present
-      
 
     - import_tasks: cis-harden.yml  # cis-harden.yml 파일의 tasks 호출
 
@@ -77,11 +79,16 @@
       service:
         name: nginx
         state: restarted
+    
+    - name: Restart SSH
+      service:
+        name: sshd
+        state: restarted
+  
       # Nginx 설정 변경 후 서비스를 재시작합니다.
 
   # roles:
   #   - UBUNTU20-STIG
-  # 해당 roles의 경우 ubuntu에 적용하는 것으로 사용이 불가능.
-  # 
+  # 위의 역할을 사용하여 Ubuntu 20.04 LTS 시스템에 대한 STIG 하드닝을 수행할 수 있습니다.
   # 아래 링크를 통해 CIS 하드닝을 편하게 진행할 수 있다.
   # https://github.com/ansible-lockdown/AMAZON2-CIS.git
