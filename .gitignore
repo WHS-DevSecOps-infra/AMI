@@ -1,0 +1,4 @@
+.env
+*.log
+*-local.json
+.packer_cache/
