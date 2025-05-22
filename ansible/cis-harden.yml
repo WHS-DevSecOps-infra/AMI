@@ -1,9 +1,8 @@
 ---
-  ## 시스템 업데이트
-  - name: 모든 패키지 최신화
-    yum:
-      name: "*"
-      state: latest
+  
+  - name: sshd 경로 설정
+    vars:
+      sshd_config: /etc/ssh/sshd_config
 
   ## SSH 설정 하드닝
   - name: SSH 최대 인증 시도 횟수 제한 (CIS 5.2.5)

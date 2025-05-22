@@ -3,31 +3,38 @@
   hosts: all
   become: yes  # 루트 권한으로 실행
   tasks:
+
+    ## 시스템 업데이트
+    - name: 모든 패키지 최신화
+      yum:
+        name: "*"
+        state: latest
+
+    # Nginx 웹 서버를 설치
     - name: Nginx 설치
       package:
         name: nginx
-        state: present
-      # Nginx 웹 서버를 설치합니다.
+        state: presen
 
     - name: Nginx 서비스 시작 및 부팅 시 자동 실행
       service:
         name: nginx
         state: started  # 즉시 시작
         enabled: yes    # 부팅 시 자동 시작
-      # 웹 서버가 항상 가동되도록 보장합니다.
+
 
     - name: Nginx 설정 파일 백업
       copy:
         src: /etc/nginx/nginx.conf
         dest: /etc/nginx/nginx.conf.bak
         remote_src: yes  # 원본 파일이 이미 존재하는 경우에만 백업
-      # 설정 파일을 변경하기 전에 백업을 생성합니다.
 
+    # Ansible이 Python3를 필요로 하므로 설치합니다.
     - name: Python3 설치
       package:
         name: python3
         state: present
-      # Ansible이 Python3를 필요로 하므로 설치합니다.
+      
 
     - import_tasks: cis-harden.yml  # cis-harden.yml 파일의 tasks 호출
 
@@ -37,8 +44,14 @@
         regexp: '^(\s*)server_tokens'  # 기존 server_tokens 라인 탐색
         line: '    server_tokens off;' # 버전 정보 비노출 설정
         insertafter: '^http {'         # http 블록 안에 추가
+      notify : Restart Nginx
       # Nginx가 보내는 헤더에 버전 정보가 표시되지 않도록 설정합니다.
 
+
+    - name: Install firewalld
+      package:
+        name: firewalld
+        state: present
 
     - name: 방화벽에서 HTTP/HTTPS 포트 열기 (RedHat 계열만)
       firewalld:
@@ -52,12 +65,6 @@
       when: ansible_facts['os_family'] == 'RedHat'
       # Amazon Linux, RHEL, CentOS 등에서만 적용됩니다.
 
-
-    - name: Install firewalld
-      amazon.aws.aws_package:
-        name: firewalld
-        state: present
-
     - name: Restart firewalld
       service:
         name: firewalld
@@ -65,7 +72,16 @@
       when: ansible_facts['os_family'] == 'RedHat'
       # 위 포트 변경 사항을 반영하기 위해 firewalld를 재시작합니다.
 
+  handlers:
+    - name: Restart Nginx
+      service:
+        name: nginx
+        state: restarted
+      # Nginx 설정 변경 후 서비스를 재시작합니다.
 
   # roles:
   #   - UBUNTU20-STIG
   # 해당 roles의 경우 ubuntu에 적용하는 것으로 사용이 불가능.
+  # 
+  # 아래 링크를 통해 CIS 하드닝을 편하게 진행할 수 있다.
+  # https://github.com/ansible-lockdown/AMAZON2-CIS.git
